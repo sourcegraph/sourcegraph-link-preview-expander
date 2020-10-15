@@ -27,7 +27,6 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                         <img width="64" src="https://miro.medium.com/max/816/1*mn6bOs7s6Qbao15PMNRyOA.png" />`,
                         kind: sourcegraph.MarkupKind.Markdown,
                     },
-                    range,
                 })
 
                 return concat(
@@ -60,14 +59,17 @@ function getWord(document: sourcegraph.TextDocument, range: sourcegraph.Range): 
 function checkIsURL(maybeURL: string): boolean {
     try {
         const url = new URL(maybeURL)
-        if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-            return false
+        switch (url.protocol) {
+            case 'http:':
+            case 'https:':
+                return true
+
+            default:
+                return false
         }
     } catch {
         return false
     }
-
-    return true
 }
 
 // Sourcegraph extension documentation: https://docs.sourcegraph.com/extensions/authoring
