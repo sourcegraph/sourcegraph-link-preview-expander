@@ -45,5 +45,8 @@
     "parcel-bundler": "^1.12.4",
     "sourcegraph": "^24.7.0",
     "typescript": "^4.0.3"
+  },
+  "dependencies": {
+    "rxjs": "^6.6.3"
   }
 }
