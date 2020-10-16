@@ -59,14 +59,7 @@ function getWord(document: sourcegraph.TextDocument, range: sourcegraph.Range): 
 function checkIsURL(maybeURL: string): boolean {
     try {
         const url = new URL(maybeURL)
-        switch (url.protocol) {
-            case 'http:':
-            case 'https:':
-                return true
-
-            default:
-                return false
-        }
+        return url.protocol === 'http:' || url.protocol === 'https:'
     } catch {
         return false
     }
