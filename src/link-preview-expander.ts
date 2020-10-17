@@ -2,7 +2,7 @@ import * as sourcegraph from 'sourcegraph'
 import { concat, of, pipe } from 'rxjs'
 import { fromFetch } from 'rxjs/fetch'
 import { catchError, map, switchMap } from 'rxjs/operators'
-import { checkIsURL, cleanURL, createMetadataCache, getWord } from './util'
+import { checkIsURL, cleanURL, createMetadataCache, FAILURE, getWord } from './util'
 import parse from 'node-html-parser'
 
 export function activate(context: sourcegraph.ExtensionContext): void {
@@ -40,13 +40,30 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                     }
                 }
 
-                // If cached, early return
+                const cachedMetadata = metadataCache.get(maybeURL)
 
+                if (cachedMetadata === FAILURE) {
+                    return createResult()
+                }
+
+                if (cachedMetadata) {
+                    return createResult(cachedMetadata)
+                }
+
+                // TODO: Return async iterable (once allowed) instead of subscribable
                 return concat(
                     of(createResult()),
                     fromFetch('https://cors-anywhere.herokuapp.com/' + maybeURL).pipe(
                         switchMap(response => response.text()),
-                        map(pipe(getMetadataFromHTMLString, mergeMetadataProviders, createResult)),
+                        map(
+                            pipe(
+                                getMetadataFromHTMLString,
+                                mergeMetadataProviders,
+                                // Store Metadata in cache, pass it on to `createResult`
+                                metadata => (metadataCache.set(maybeURL, metadata), metadata),
+                                createResult
+                            )
+                        ),
                         catchError(() => {
                             metadataCache.reportFailure(maybeURL)
                             return of(createResult())
@@ -69,7 +86,7 @@ interface MetadataProvider<T = string> {
     selectorPrefix: string
 }
 
-type MetadataProviderType = 'openGraph' | 'twitter'
+type MetadataProviderType = 'openGraph' | 'twitter' | 'default'
 
 type MetadataByProvider = Record<MetadataProviderType, Metadata>
 
@@ -84,6 +101,11 @@ const metadataProviders: MetadataProvider<MetadataProviderType>[] = [
         type: 'twitter',
         selectorType: 'name',
         selectorPrefix: 'twitter:',
+    },
+    {
+        type: 'default',
+        selectorType: 'name',
+        selectorPrefix: '',
     },
 ]
 
@@ -109,6 +131,7 @@ export function getMetadataFromHTMLString(htmlString: string): MetadataByProvide
     const metadataByProvider: MetadataByProvider = {
         openGraph: initializeMetadata(),
         twitter: initializeMetadata(),
+        default: initializeMetadata(),
     }
 
     if (!root.valid) {
@@ -140,7 +163,7 @@ export function initializeMetadata(): Metadata {
     return {
         image: '',
         title: '',
-        description: ''
+        description: '',
     }
 }
 

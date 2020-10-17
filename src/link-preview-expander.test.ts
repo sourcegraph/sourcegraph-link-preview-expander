@@ -15,6 +15,7 @@ describe('link-preview-expander', () => {
         const finalMetadata = mergeMetadataProviders({
             openGraph: initializeMetadata(),
             twitter: initializeMetadata(),
+            default: initializeMetadata()
         })
         // TODO
     })
