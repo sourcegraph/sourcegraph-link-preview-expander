@@ -1,10 +1,13 @@
 import * as sourcegraph from 'sourcegraph'
-import { concat, of } from 'rxjs'
+import { concat, of, pipe } from 'rxjs'
 import { fromFetch } from 'rxjs/fetch'
 import { catchError, map, switchMap } from 'rxjs/operators'
-import { checkIsURL, getWord } from './util'
+import { checkIsURL, cleanURL, createMetadataCache, getWord } from './util'
+import parse from 'node-html-parser'
 
 export function activate(context: sourcegraph.ExtensionContext): void {
+    const metadataCache = createMetadataCache({})
+
     context.subscriptions.add(
         sourcegraph.languages.registerHoverProvider(['*'], {
             provideHover: (document, position) => {
@@ -12,36 +15,42 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                 if (!range) {
                     return null
                 }
-                const maybeURL = getWord(document, range)
+                const maybeURL = cleanURL(getWord(document, range))
                 const isURL = checkIsURL(maybeURL)
 
                 if (!isURL) {
                     return null
                 }
 
-                const createResult: (debugString: string) => sourcegraph.Badged<sourcegraph.Hover> = (
-                    debugString: string
-                ) => ({
-                    contents: {
-                        value: `<p>${debugString}</p>
-                        <a href="${maybeURL}" target="_blank" rel="noopener noreferrer">Navigate to link</a>
-                        <img width="64" src="https://miro.medium.com/max/816/1*mn6bOs7s6Qbao15PMNRyOA.png" />`,
-                        kind: sourcegraph.MarkupKind.Markdown,
-                    },
-                })
+                /**
+                 * TODO: document behavior/intended usage
+                 *
+                 * @param Metadata
+                 */
+                const createResult: (metadata?: Metadata) => sourcegraph.Badged<sourcegraph.Hover> = metadata => {
+                    const { image, title, description } = metadata || {}
+                    return {
+                        contents: {
+                            value: `<img height="64" src="${image || '#'}" style="${image ? '' : 'display: none;'}" />
+                        <h3>${title ?? ''}</h3>
+                        <p>${description ?? ''}</p>
+                        <p><a href="${maybeURL}" target="_blank" rel="noopener noreferrer">Navigate to link!!</a></p>`,
+                            kind: sourcegraph.MarkupKind.Markdown,
+                        },
+                    }
+                }
+
+                // If cached, early return
 
                 return concat(
-                    of(createResult('loading')),
-                    fromFetch(maybeURL).pipe(
+                    of(createResult()),
+                    fromFetch('https://cors-anywhere.herokuapp.com/' + maybeURL).pipe(
                         switchMap(response => response.text()),
-                        map(() => {
-                            console.time('parsing + merging')
-
-                            console.timeEnd('parsing + merging')
-
-                            return createResult('loaded')
-                        }),
-                        catchError(() => of(createResult('error')))
+                        map(pipe(getMetadataFromHTMLString, mergeMetadataProviders, createResult)),
+                        catchError(() => {
+                            metadataCache.reportFailure(maybeURL)
+                            return of(createResult())
+                        })
                     )
                 )
             },
@@ -52,7 +61,7 @@ export function activate(context: sourcegraph.ExtensionContext): void {
 const metadataAttributes = ['image', 'title', 'description'] as const
 type MetadataAttributes = typeof metadataAttributes[number]
 
-type Metadata = Record<MetadataAttributes, string>
+export type Metadata = Record<MetadataAttributes, string>
 
 interface MetadataProvider<T = string> {
     type: T
@@ -61,6 +70,8 @@ interface MetadataProvider<T = string> {
 }
 
 type MetadataProviderType = 'openGraph' | 'twitter'
+
+type MetadataByProvider = Record<MetadataProviderType, Metadata>
 
 // In order of priority in the 'metadata cascade'
 const metadataProviders: MetadataProvider<MetadataProviderType>[] = [
@@ -76,11 +87,11 @@ const metadataProviders: MetadataProvider<MetadataProviderType>[] = [
     },
 ]
 
-function mergeMetadataProviders(metadataByProvider: Record<MetadataProviderType, Metadata>): Metadata {
+export function mergeMetadataProviders(metadataByProvider: MetadataByProvider): Metadata {
     const finalMetadata: Metadata = {
         image: '',
         title: '',
-        description: ''
+        description: '',
     }
 
     for (const attribute of metadataAttributes) {
@@ -94,6 +105,44 @@ function mergeMetadataProviders(metadataByProvider: Record<MetadataProviderType,
     }
 
     return finalMetadata
+}
+
+export function getMetadataFromHTMLString(htmlString: string): MetadataByProvider {
+    const root = parse(htmlString)
+
+    const metadataByProvider: MetadataByProvider = {
+        openGraph: {
+            image: '',
+            title: '',
+            description: '',
+        },
+        twitter: {
+            image: '',
+            title: '',
+            description: '',
+        },
+    }
+
+    if (!root.valid) {
+        return metadataByProvider
+    }
+
+    // node-html-parser doesn't support this selector: 'meta[property="og:image"]'
+    const metaElements = root.querySelectorAll('meta')
+
+    outer: for (const metaElement of metaElements) {
+        for (const { type, selectorType, selectorPrefix } of metadataProviders) {
+            for (const attribute of metadataAttributes) {
+                const propertyOrName = metaElement.getAttribute(selectorType)
+                if (propertyOrName === selectorPrefix + attribute) {
+                    metadataByProvider[type][attribute] = metaElement.getAttribute('content') ?? ''
+                    continue outer
+                }
+            }
+        }
+    }
+
+    return metadataByProvider
 }
 
 // Sourcegraph extension documentation: https://docs.sourcegraph.com/extensions/authoring
