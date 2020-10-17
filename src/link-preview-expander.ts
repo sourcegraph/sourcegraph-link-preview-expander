@@ -23,9 +23,7 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                 }
 
                 /**
-                 * TODO: document behavior/intended usage
-                 *
-                 * @param metadata
+                 * Creates the markdown string to be rendered in the hover tooltip.
                  */
                 const createResult: (metadata?: Metadata) => sourcegraph.Badged<sourcegraph.Hover> = metadata => {
                     const { image, title, description } = metadata || {}
@@ -42,15 +40,23 @@ export function activate(context: sourcegraph.ExtensionContext): void {
 
                 const cachedMetadata = metadataCache.get(maybeURL)
 
+                // Requests to the hovered URL have failed too many times, so just display a link
                 if (cachedMetadata === FAILURE) {
                     return createResult()
                 }
 
+                // We have retrieved this URLs metadata within `maxAge`, so display it without re-fetching
                 if (cachedMetadata) {
                     return createResult(cachedMetadata)
                 }
 
-                // TODO: Return async iterable (once allowed) instead of subscribable
+                /**
+                 * At this point, we fetch because:
+                 * - We may not have retrieved this URLs metadata yet
+                 * - This URLs metadata may have been evicted from the cache
+                 * - This URLs metadata may be too old (age greater than `maxAge` option)
+                 */
+                // TODO(tj): Return async iterable (once allowed) instead of subscribable
                 return concat(
                     of(createResult()),
                     fromFetch('https://cors-anywhere.herokuapp.com/' + maybeURL).pipe(
@@ -109,6 +115,11 @@ const metadataProviders: MetadataProvider<MetadataProviderType>[] = [
     },
 ]
 
+/**
+ * Merges metadata by priority of provider type.
+ *
+ * @param metadataByProvider Record of Metadata objects keyed by metadata provider type
+ */
 export function mergeMetadataProviders(metadataByProvider: MetadataByProvider): Metadata {
     const finalMetadata = initializeMetadata()
 
@@ -125,6 +136,9 @@ export function mergeMetadataProviders(metadataByProvider: MetadataByProvider): 
     return finalMetadata
 }
 
+/**
+ * Retrieves metadata from all providers given an HTML string
+ */
 export function getMetadataFromHTMLString(htmlString: string): MetadataByProvider {
     const root = parse(htmlString)
 
@@ -157,7 +171,7 @@ export function getMetadataFromHTMLString(htmlString: string): MetadataByProvide
 }
 
 /**
- *
+ * Returns an object with each metadata key initialized with an empty string
  */
 export function initializeMetadata(): Metadata {
     return {

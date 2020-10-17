@@ -52,11 +52,14 @@ interface MetadataCache {
 }
 
 /**
- * Creates a simple LRU cache for
+ * Creates a simple LRU cache for metadata.
  *
- *
- *
- * motivation:
+ * Motivation:
+ * - It's easy for users to trigger multiple hovers unintentionally
+ * - Users may hover over the same URL several times to re-read previews
+ * - Don't want to blow through cors-anywhere rate-limit
+ * - Hover to presented metadata is a relatively expensive process.
+ * (fetch -> parse html -> merge content from relevant meta tags)
  */
 export function createMetadataCache(
     options: LRU.Options<string, Metadata | number> & { retries?: number }
