@@ -25,16 +25,16 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                 /**
                  * TODO: document behavior/intended usage
                  *
-                 * @param Metadata
+                 * @param metadata
                  */
                 const createResult: (metadata?: Metadata) => sourcegraph.Badged<sourcegraph.Hover> = metadata => {
                     const { image, title, description } = metadata || {}
                     return {
                         contents: {
                             value: `<img height="64" src="${image || '#'}" style="${image ? '' : 'display: none;'}" />
-                        <h3>${title ?? ''}</h3>
-                        <p>${description ?? ''}</p>
-                        <p><a href="${maybeURL}" target="_blank" rel="noopener noreferrer">Navigate to link!!</a></p>`,
+                                    <h3>${title ?? ''}</h3>
+                                    <p>${description ?? ''}</p>
+                                    <p><a href="${maybeURL}" target="_blank" rel="noopener noreferrer">Navigate to link!!</a></p>`,
                             kind: sourcegraph.MarkupKind.Markdown,
                         },
                     }
@@ -88,11 +88,7 @@ const metadataProviders: MetadataProvider<MetadataProviderType>[] = [
 ]
 
 export function mergeMetadataProviders(metadataByProvider: MetadataByProvider): Metadata {
-    const finalMetadata: Metadata = {
-        image: '',
-        title: '',
-        description: '',
-    }
+    const finalMetadata = initializeMetadata()
 
     for (const attribute of metadataAttributes) {
         for (const { type } of metadataProviders) {
@@ -111,16 +107,8 @@ export function getMetadataFromHTMLString(htmlString: string): MetadataByProvide
     const root = parse(htmlString)
 
     const metadataByProvider: MetadataByProvider = {
-        openGraph: {
-            image: '',
-            title: '',
-            description: '',
-        },
-        twitter: {
-            image: '',
-            title: '',
-            description: '',
-        },
+        openGraph: initializeMetadata(),
+        twitter: initializeMetadata(),
     }
 
     if (!root.valid) {
@@ -143,6 +131,17 @@ export function getMetadataFromHTMLString(htmlString: string): MetadataByProvide
     }
 
     return metadataByProvider
+}
+
+/**
+ *
+ */
+export function initializeMetadata(): Metadata {
+    return {
+        image: '',
+        title: '',
+        description: ''
+    }
 }
 
 // Sourcegraph extension documentation: https://docs.sourcegraph.com/extensions/authoring
