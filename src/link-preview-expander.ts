@@ -2,6 +2,7 @@ import * as sourcegraph from 'sourcegraph'
 import { concat, of } from 'rxjs'
 import { fromFetch } from 'rxjs/fetch'
 import { catchError, map, switchMap } from 'rxjs/operators'
+import { checkIsURL, getWord } from './util'
 
 export function activate(context: sourcegraph.ExtensionContext): void {
     context.subscriptions.add(
@@ -32,13 +33,14 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                 return concat(
                     of(createResult('loading')),
                     fromFetch(maybeURL).pipe(
-                        switchMap(response => {
-                            if (response.ok) {
-                                return response.json()
-                            }
-                            return of(createResult('error'))
+                        switchMap(response => response.text()),
+                        map(() => {
+                            console.time('parsing + merging')
+
+                            console.timeEnd('parsing + merging')
+
+                            return createResult('loaded')
                         }),
-                        map(() => createResult('loaded')),
                         catchError(() => of(createResult('error')))
                     )
                 )
@@ -47,22 +49,51 @@ export function activate(context: sourcegraph.ExtensionContext): void {
     )
 }
 
-function getWord(document: sourcegraph.TextDocument, range: sourcegraph.Range): string {
-    const lines = document.text?.split('\n')
-    let word = ''
-    if (lines && range) {
-        word = lines[range.start.line].slice(range.start.character, range.end.character)
-    }
-    return word
+const metadataAttributes = ['image', 'title', 'description'] as const
+type MetadataAttributes = typeof metadataAttributes[number]
+
+type Metadata = Record<MetadataAttributes, string>
+
+interface MetadataProvider<T = string> {
+    type: T
+    selectorType: 'property' | 'name'
+    selectorPrefix: string
 }
 
-function checkIsURL(maybeURL: string): boolean {
-    try {
-        const url = new URL(maybeURL)
-        return url.protocol === 'http:' || url.protocol === 'https:'
-    } catch {
-        return false
+type MetadataProviderType = 'openGraph' | 'twitter'
+
+// In order of priority in the 'metadata cascade'
+const metadataProviders: MetadataProvider<MetadataProviderType>[] = [
+    {
+        type: 'openGraph',
+        selectorType: 'property',
+        selectorPrefix: 'og:',
+    },
+    {
+        type: 'twitter',
+        selectorType: 'name',
+        selectorPrefix: 'twitter:',
+    },
+]
+
+function mergeMetadataProviders(metadataByProvider: Record<MetadataProviderType, Metadata>): Metadata {
+    const finalMetadata: Metadata = {
+        image: '',
+        title: '',
+        description: ''
     }
+
+    for (const attribute of metadataAttributes) {
+        for (const { type } of metadataProviders) {
+            const value = metadataByProvider[type][attribute]
+            if (value) {
+                finalMetadata[attribute] = value
+                break
+            }
+        }
+    }
+
+    return finalMetadata
 }
 
 // Sourcegraph extension documentation: https://docs.sourcegraph.com/extensions/authoring
