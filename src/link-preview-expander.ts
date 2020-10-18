@@ -1,9 +1,6 @@
-import { concat, of, pipe } from 'rxjs'
-import { fromFetch } from 'rxjs/fetch'
-import { catchError, map, switchMap } from 'rxjs/operators'
+import * as sourcegraph from 'sourcegraph'
 import { checkIsURL, cleanURL, createMetadataCache, FAILURE, getWord } from './util'
 import parse from 'node-html-parser'
-import * as sourcegraph from 'sourcegraph'
 
 export function activate(context: sourcegraph.ExtensionContext): void {
     const metadataCache = createMetadataCache({})
@@ -56,26 +53,18 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                  * - This URL's metadata may have been evicted from the cache
                  * - This URL's metadata may be too old (age greater than `maxAge` option)
                  */
-                // TODO(tj): Return async iterable (once allowed) instead of promise (about to remove rx) so that we can show link before metadata loads
-                return concat(
-                    of(createResult()),
-                    fromFetch('https://cors-anywhere.herokuapp.com/' + maybeURL).pipe(
-                        switchMap(response => response.text()),
-                        map(
-                            pipe(
-                                getMetadataFromHTMLString,
-                                mergeMetadataProviders,
-                                // Store Metadata in cache, pass it on to `createResult`
-                                metadata => (metadataCache.set(maybeURL, metadata), metadata),
-                                createResult
-                            )
-                        ),
-                        catchError(() => {
-                            metadataCache.reportFailure(maybeURL)
-                            return of(createResult())
-                        })
-                    )
-                )
+                // TODO(tj): Return async iterable (once allowed) instead of promise so that we can show link before metadata loads
+                return fetch('https://cors-anywhere.herokuapp.com/' + maybeURL)
+                    .then(response => response.text())
+                    .then(text => {
+                        const metadata = mergeMetadataProviders(getMetadataFromHTMLString(text))
+                        metadataCache.set(maybeURL, metadata)
+                        return createResult(metadata)
+                    })
+                    .catch(() => {
+                        metadataCache.reportFailure(maybeURL)
+                        return createResult()
+                    })
             },
         })
     )
