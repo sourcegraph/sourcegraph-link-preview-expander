@@ -23,13 +23,28 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                  * Creates the markdown string to be rendered in the hover tooltip.
                  */
                 const createResult: (metadata?: Metadata) => sourcegraph.Badged<sourcegraph.Hover> = metadata => {
-                    const { image, title, description } = metadata || {}
+                    const { image, title, description } = metadata ?? {}
+
+                    let markdownContent = `<h4><a href="${maybeURL}" target="_blank" rel="noopener noreferrer">${
+                        title || maybeURL
+                    }</a></h4>`
+
+                    if (image || description) {
+                        markdownContent += '<hr />'
+
+                        if (image) {
+                            markdownContent += `<img height="64" src="${image}" />`
+                        }
+
+                        if (description) {
+                            // Extra <p /> for margin
+                            markdownContent += `<p /><p>${description ?? ''}</p>`
+                        }
+                    }
+
                     return {
                         contents: {
-                            value: `<img height="64" src="${image || '#'}" style="${image ? '' : 'display: none;'}" />
-                                    <h3>${title ?? ''}</h3>
-                                    <p>${description ?? ''}</p>
-                                    <p><a href="${maybeURL}" target="_blank" rel="noopener noreferrer">Navigate to link!!</a></p>`,
+                            value: markdownContent,
                             kind: sourcegraph.MarkupKind.Markdown,
                         },
                     }
@@ -154,6 +169,12 @@ export function getMetadataFromHTMLString(htmlString: string): MetadataByProvide
                 }
             }
         }
+    }
+
+    // Override default title with <title /> tag
+    const title = root.querySelector('title')?.rawText
+    if (title) {
+        metadataByProvider.default.title = title
     }
 
     return metadataByProvider
