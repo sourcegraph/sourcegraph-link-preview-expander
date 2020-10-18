@@ -1,9 +1,9 @@
-import * as sourcegraph from 'sourcegraph'
 import { concat, of, pipe } from 'rxjs'
 import { fromFetch } from 'rxjs/fetch'
 import { catchError, map, switchMap } from 'rxjs/operators'
 import { checkIsURL, cleanURL, createMetadataCache, FAILURE, getWord } from './util'
 import parse from 'node-html-parser'
+import * as sourcegraph from 'sourcegraph'
 
 export function activate(context: sourcegraph.ExtensionContext): void {
     const metadataCache = createMetadataCache({})
@@ -56,7 +56,7 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                  * - This URLs metadata may have been evicted from the cache
                  * - This URLs metadata may be too old (age greater than `maxAge` option)
                  */
-                // TODO(tj): Return async iterable (once allowed) instead of subscribable
+                // TODO(tj): Return async iterable (once allowed) instead of promise so that we can show link before metadata loads
                 return concat(
                     of(createResult()),
                     fromFetch('https://cors-anywhere.herokuapp.com/' + maybeURL).pipe(
@@ -81,7 +81,7 @@ export function activate(context: sourcegraph.ExtensionContext): void {
     )
 }
 
-const metadataAttributes = ['image', 'title', 'description'] as const
+export const metadataAttributes = ['image', 'title', 'description'] as const
 type MetadataAttributes = typeof metadataAttributes[number]
 
 export type Metadata = Record<MetadataAttributes, string>
@@ -97,7 +97,7 @@ type MetadataProviderType = 'openGraph' | 'twitter' | 'default'
 type MetadataByProvider = Record<MetadataProviderType, Metadata>
 
 // In order of priority in the 'metadata cascade'
-const metadataProviders: MetadataProvider<MetadataProviderType>[] = [
+export const metadataProviders: MetadataProvider<MetadataProviderType>[] = [
     {
         type: 'openGraph',
         selectorType: 'property',
