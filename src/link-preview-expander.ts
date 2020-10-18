@@ -53,10 +53,10 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                 /**
                  * At this point, we fetch because:
                  * - We may not have retrieved this URLs metadata yet
-                 * - This URLs metadata may have been evicted from the cache
-                 * - This URLs metadata may be too old (age greater than `maxAge` option)
+                 * - This URL's metadata may have been evicted from the cache
+                 * - This URL's metadata may be too old (age greater than `maxAge` option)
                  */
-                // TODO(tj): Return async iterable (once allowed) instead of promise so that we can show link before metadata loads
+                // TODO(tj): Return async iterable (once allowed) instead of promise (about to remove rx) so that we can show link before metadata loads
                 return concat(
                     of(createResult()),
                     fromFetch('https://cors-anywhere.herokuapp.com/' + maybeURL).pipe(
@@ -94,7 +94,7 @@ interface MetadataProvider<T = string> {
 
 type MetadataProviderType = 'openGraph' | 'twitter' | 'default'
 
-type MetadataByProvider = Record<MetadataProviderType, Metadata>
+export type MetadataByProvider = Record<MetadataProviderType, Metadata>
 
 // In order of priority in the 'metadata cascade'
 export const metadataProviders: MetadataProvider<MetadataProviderType>[] = [
@@ -171,7 +171,7 @@ export function getMetadataFromHTMLString(htmlString: string): MetadataByProvide
 }
 
 /**
- * Returns an object with each metadata key initialized with an empty string
+ * Returns an object with each metadata attribute initialized with an empty string
  */
 export function initializeMetadata(): Metadata {
     return {
