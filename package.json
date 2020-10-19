@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/sourcegraph/sourcegraph/main/client/shared/src/schema/extension.schema.json",
   "name": "link-preview-expander",
-  "description": "",
+  "description": "Hyperlinks URLs and provides hover previews",
   "publisher": "sourcegraph",
   "activationEvents": [
     "*"
@@ -29,7 +29,22 @@
     "watch:typecheck": "tsc -p tsconfig.json -w",
     "watch:build": "tsc -p tsconfig.dist.json -w",
     "sourcegraph:prepublish": "yarn run typecheck && yarn run build",
-    "test": "jest"
+    "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' mocha --require ts-node/register --require source-map-support/register --opts mocha.opts",
+    "cover": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' nyc --require ts-node/register --require source-map-support/register --all mocha --opts mocha.opts --timeout 10000"
+  },
+  "nyc": {
+    "extension": [
+      ".tsx",
+      ".ts"
+    ],
+    "include": [
+      "src/**/*.ts?(x)"
+    ],
+    "exclude": [
+      "**/*.test.ts?(x)",
+      "**/*.d.ts",
+      "**/*.js"
+    ]
   },
   "browserslist": [
     "last 1 Chrome versions",
@@ -38,27 +53,24 @@
     "last 1 Safari versions"
   ],
   "devDependencies": {
-    "@babel/core": "^7.12.0",
-    "@babel/preset-env": "^7.12.0",
-    "@babel/preset-typescript": "^7.12.1",
     "@sourcegraph/eslint-config": "^0.20.11",
     "@sourcegraph/extension-api-stubs": "^1.2.2",
     "@sourcegraph/tsconfig": "^4.0.1",
-    "@types/jest": "^26.0.14",
-    "@types/lru-cache": "^5.1.0",
+    "@types/mocha": "^8.0.3",
     "@types/mock-require": "^2.0.0",
-    "babel-jest": "^26.5.2",
     "eslint": "^7.11.0",
-    "jest": "^26.5.3",
     "lnfs-cli": "^2.1.0",
     "mkdirp": "^1.0.4",
+    "mocha": "^5.2.0",
+    "mock-require": "^3.0.3",
     "parcel-bundler": "^1.12.4",
     "sinon": "^9.2.0",
+    "source-map-support": "^0.5.19",
     "sourcegraph": "^24.7.0",
+    "ts-node": "^9.0.0",
     "typescript": "^4.0.3"
   },
   "dependencies": {
-    "lru-cache": "^6.0.0",
     "node-html-parser": "^1.3.1"
   }
 }

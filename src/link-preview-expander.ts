@@ -1,10 +1,8 @@
 import * as sourcegraph from 'sourcegraph'
-import { checkIsURL, cleanURL, createMetadataCache, FAILURE, getWord } from './util'
+import { checkIsURL, cleanURL, getWord } from './util'
 import parse from 'node-html-parser'
 
 export function activate(context: sourcegraph.ExtensionContext): void {
-    const metadataCache = createMetadataCache({})
-
     context.subscriptions.add(
         sourcegraph.languages.registerHoverProvider(['*'], {
             provideHover: (document, position) => {
@@ -50,36 +48,14 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                     }
                 }
 
-                const cachedMetadata = metadataCache.get(maybeURL)
-
-                // Requests to the hovered URL have failed too many times, so just display a link
-                if (cachedMetadata === FAILURE) {
-                    return createResult()
-                }
-
-                // We have retrieved this URLs metadata within `maxAge`, so display it without re-fetching
-                if (cachedMetadata) {
-                    return createResult(cachedMetadata)
-                }
-
-                /**
-                 * At this point, we fetch because:
-                 * - We may not have retrieved this URLs metadata yet
-                 * - This URL's metadata may have been evicted from the cache
-                 * - This URL's metadata may be too old (age greater than `maxAge` option)
-                 */
                 // TODO(tj): Return async iterable (once allowed) instead of promise so that we can show link before metadata loads
-                return fetch('https://cors-anywhere.herokuapp.com/' + maybeURL)
+                return fetch('https://cors-anywhere.herokuapp.com/' + maybeURL, { cache: 'force-cache' })
                     .then(response => response.text())
                     .then(text => {
-                        const metadata = mergeMetadataProviders(getMetadataFromHTMLString(text))
-                        metadataCache.set(maybeURL, metadata)
+                        const metadata = getMetadataFromHTMLString(text)
                         return createResult(metadata)
                     })
-                    .catch(() => {
-                        metadataCache.reportFailure(maybeURL)
-                        return createResult()
-                    })
+                    .catch(() => createResult())
             },
         })
     )
@@ -90,81 +66,59 @@ type MetadataAttributes = typeof metadataAttributes[number]
 
 export type Metadata = Record<MetadataAttributes, string>
 
-interface MetadataProvider<T = string> {
-    type: T
+interface MetadataProvider {
     selectorType: 'property' | 'name'
     selectorPrefix: string
 }
 
-type MetadataProviderType = 'openGraph' | 'twitter' | 'default'
-
-export type MetadataByProvider = Record<MetadataProviderType, Metadata>
-
-// In order of priority in the 'metadata cascade'
-export const metadataProviders: MetadataProvider<MetadataProviderType>[] = [
+export const metadataProviders: MetadataProvider[] = [
     {
-        type: 'openGraph',
         selectorType: 'property',
         selectorPrefix: 'og:',
     },
     {
-        type: 'twitter',
         selectorType: 'name',
         selectorPrefix: 'twitter:',
     },
     {
-        type: 'default',
         selectorType: 'name',
         selectorPrefix: '',
     },
 ]
 
 /**
- * Merges metadata by priority of provider type.
- *
- * @param metadataByProvider Record of Metadata objects keyed by metadata provider type
+ * Retrieves metadata given an HTML string
  */
-export function mergeMetadataProviders(metadataByProvider: MetadataByProvider): Metadata {
-    const finalMetadata = initializeMetadata()
-
-    for (const attribute of metadataAttributes) {
-        for (const { type } of metadataProviders) {
-            const value = metadataByProvider[type][attribute]
-            if (value) {
-                finalMetadata[attribute] = value
-                break
-            }
-        }
-    }
-
-    return finalMetadata
-}
-
-/**
- * Retrieves metadata from all providers given an HTML string
- */
-export function getMetadataFromHTMLString(htmlString: string): MetadataByProvider {
+export function getMetadataFromHTMLString(htmlString: string): Metadata {
     const root = parse(htmlString)
 
-    const metadataByProvider: MetadataByProvider = {
-        openGraph: initializeMetadata(),
-        twitter: initializeMetadata(),
-        default: initializeMetadata(),
-    }
+    const metadata = initializeMetadata()
 
     if (!root.valid) {
-        return metadataByProvider
+        return metadata
     }
 
     // node-html-parser doesn't support this selector: 'meta[property="og:image"]'
     const metaElements = root.querySelectorAll('meta')
 
+    const attributes = [...metadataAttributes]
+
     outer: for (const metaElement of metaElements) {
-        for (const { type, selectorType, selectorPrefix } of metadataProviders) {
-            for (const attribute of metadataAttributes) {
+        // We have found valid values for all attributes
+        if (attributes.length === 0) {
+            break
+        }
+
+        for (const { selectorType, selectorPrefix } of metadataProviders) {
+            for (const [index, attribute] of attributes.entries()) {
                 const propertyOrName = metaElement.getAttribute(selectorType)
                 if (propertyOrName === selectorPrefix + attribute) {
-                    metadataByProvider[type][attribute] = metaElement.getAttribute('content') ?? ''
+                    const content = metaElement.getAttribute('content')
+                    if (content) {
+                        // A valid value for this attribute has been found; stop looking for it.
+                        metadata[attribute] = content
+                        attributes.splice(index, 1)
+                    }
                     continue outer
                 }
             }
@@ -172,12 +126,12 @@ export function getMetadataFromHTMLString(htmlString: string): MetadataByProvide
     }
 
     // Override default title with <title /> tag
-    const title = root.querySelector('title')?.rawText
-    if (title) {
-        metadataByProvider.default.title = title
+    if (!metadata.title) {
+        const title = root.querySelector('title')?.rawText
+        metadata.title = title
     }
 
-    return metadataByProvider
+    return metadata
 }
 
 /**
