@@ -24,9 +24,5 @@ export function checkIsURL(maybeURL: string): boolean {
  * @param maybeURL Possible URL string
  */
 export function cleanURL(maybeURL: string): string {
-    const lastCharacter = maybeURL.slice(-1)
-    if (lastCharacter === '.' || lastCharacter === ',') {
-        return maybeURL.slice(0, -1)
-    }
-    return maybeURL
+    return maybeURL.replace(/[,.]$/, '')
 }

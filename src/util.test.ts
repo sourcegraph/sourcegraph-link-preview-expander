@@ -13,8 +13,12 @@ describe('util', () => {
     })
 
     describe('cleanURL', () => {
-        it('strips last character when it is a period or comma', () => {
+        it('strips last character when it is a comma', () => {
             assert.strictEqual(cleanURL('https://sourcegraph.com/extensions,'), 'https://sourcegraph.com/extensions')
+        })
+
+        it('strips last character when it is a period', () => {
+            assert.strictEqual(cleanURL('https://sourcegraph.com/extensions.'), 'https://sourcegraph.com/extensions')
         })
 
         it('does not strip last character when it is not a period or comma', () => {

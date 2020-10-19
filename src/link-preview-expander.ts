@@ -23,20 +23,17 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                 const createResult: (metadata?: Metadata) => sourcegraph.Badged<sourcegraph.Hover> = metadata => {
                     const { image, title, description } = metadata ?? {}
 
-                    let markdownContent = `<h4><a href="${maybeURL}" target="_blank" rel="noopener noreferrer">${
-                        title || maybeURL
-                    }</a></h4>`
+                    let markdownContent = `#### [${title || maybeURL}](${maybeURL})\n\n`
 
                     if (image || description) {
-                        markdownContent += '<hr />'
+                        markdownContent += '---\n\n'
 
                         if (image) {
-                            markdownContent += `<img height="64" src="${image}" />`
+                            markdownContent += `<img height="64" src="${image}" align="left" />`
                         }
 
                         if (description) {
-                            // Extra <p /> for margin
-                            markdownContent += `<p /><p>${description ?? ''}</p>`
+                            markdownContent += `<p>${description ?? ''}</p>`
                         }
                     }
 
@@ -51,10 +48,7 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                 // TODO(tj): Return async iterable (once allowed) instead of promise so that we can show link before metadata loads
                 return fetch('https://cors-anywhere.herokuapp.com/' + maybeURL, { cache: 'force-cache' })
                     .then(response => response.text())
-                    .then(text => {
-                        const metadata = getMetadataFromHTMLString(text)
-                        return createResult(metadata)
-                    })
+                    .then(text => createResult(getMetadataFromHTMLString(text)))
                     .catch(() => createResult())
             },
         })
