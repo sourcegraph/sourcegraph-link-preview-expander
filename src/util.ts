@@ -1,5 +1,6 @@
 import * as sourcegraph from 'sourcegraph'
 
+// TODO replace with `textDocument.getText(range)` after 3.22 is relased
 export function getWord(document: sourcegraph.TextDocument, range: sourcegraph.Range): string {
     const lines = document.text?.split('\n')
     let word = ''
