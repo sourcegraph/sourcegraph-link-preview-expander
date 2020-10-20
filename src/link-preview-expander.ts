@@ -33,7 +33,7 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                         }
 
                         if (description) {
-                            markdownContent += `<p>${description ?? ''}</p>`
+                            markdownContent += `\n\n${description ?? ''}`
                         }
                     }
 
