@@ -15,7 +15,13 @@
       "editor/title": [],
       "commandPalette": []
     },
-    "configuration": {}
+    "configuration": {
+      "linkPreviewExpander.corsAnywhereUrl": {
+        "description": "The URL to a CORS proxy.",
+        "type": "string",
+        "default": "https://cors-anywhere.herokuapp.com"
+      }
+    }
   },
   "version": "0.0.0-DEVELOPMENT",
   "license": "Apache-2.0",

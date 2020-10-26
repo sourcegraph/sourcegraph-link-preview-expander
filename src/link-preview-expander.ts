@@ -2,6 +2,10 @@ import * as sourcegraph from 'sourcegraph'
 import { checkIsURL, cleanURL, getWord } from './util'
 import parse from 'node-html-parser'
 
+interface Settings {
+    ['linkPreviewExpander.corsAnywhereUrl']?: string
+}
+
 export function activate(context: sourcegraph.ExtensionContext): void {
     context.subscriptions.add(
         sourcegraph.languages.registerHoverProvider(['*'], {
@@ -29,11 +33,11 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                         markdownContent += '---\n\n'
 
                         if (image) {
-                            markdownContent += `<img height="64" src="${image}" align="left" />`
+                            markdownContent += `<img height="64" src="${image}" align="left" style="padding: 4px;" />`
                         }
 
                         if (description) {
-                            markdownContent += `<p>${description ?? ''}</p>`
+                            markdownContent += `\n\n${description ?? ''}`
                         }
                     }
 
@@ -44,12 +48,27 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                         },
                     }
                 }
+                const settings = sourcegraph.configuration.get<Settings>().value
 
                 // TODO(tj): Return async iterable (once allowed) instead of promise so that we can show link before metadata loads
-                return fetch('https://cors-anywhere.herokuapp.com/' + maybeURL, { cache: 'force-cache' })
+                return fetch(
+                    (settings['linkPreviewExpander.corsAnywhereUrl']?.replace(/\/$/, '') ??
+                        'https://cors-anywhere.herokuapp.com') +
+                        '/' +
+                        maybeURL,
+                    { cache: 'force-cache' }
+                )
                     .then(response => response.text())
-                    .then(text => createResult(getMetadataFromHTMLString(text)))
-                    .catch(() => createResult())
+                    .then(text => {
+                        const result = createResult(getMetadataFromHTMLString(text))
+                        console.log(result)
+                        return result
+                    })
+                    .catch(error => {
+                        const result = createResult()
+                        console.log('error??', error)
+                        return result
+                    })
             },
         })
     )
