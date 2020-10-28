@@ -33,7 +33,7 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                         markdownContent += '---\n\n'
 
                         if (image) {
-                            markdownContent += `<img height="64" src="${image}" align="left" style="padding: 4px;" />`
+                            markdownContent += `<img height="64" src="${image}" align="left" style="padding-right: 4px;" />`
                         }
 
                         if (description) {
@@ -59,16 +59,8 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                     { cache: 'force-cache' }
                 )
                     .then(response => response.text())
-                    .then(text => {
-                        const result = createResult(getMetadataFromHTMLString(text))
-                        console.log(result)
-                        return result
-                    })
-                    .catch(error => {
-                        const result = createResult()
-                        console.log('error??', error)
-                        return result
-                    })
+                    .then(text => createResult(getMetadataFromHTMLString(text)))
+                    .catch(() => createResult())
             },
         })
     )
