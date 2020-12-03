@@ -4,8 +4,8 @@ link-preview-expander displays metadata from Open Graph and Twitter meta tags wh
 
 <p>
 <picture>
-<source srcset="https://user-images.githubusercontent.com/37420160/97129290-e2653380-1714-11eb-83df-110059690c5f.png" media="(prefers-color-scheme: dark)">
-<source srcset="https://user-images.githubusercontent.com/37420160/97129308-e98c4180-1714-11eb-90c1-90dc134d71b1.png" media="(prefers-color-scheme: light)">
-<img src="https://user-images.githubusercontent.com/37420160/97129308-e98c4180-1714-11eb-90c1-90dc134d71b1.png" alt="Screenshot">
+<source srcset="https://user-images.githubusercontent.com/37420160/101077427-d15cdd00-3572-11eb-91ed-6ea3ba8a9037.png" media="(prefers-color-scheme: dark)">
+<source srcset="https://user-images.githubusercontent.com/37420160/101077430-d28e0a00-3572-11eb-8cb1-536b173b0b83.png" media="(prefers-color-scheme: light)">
+<img src="https://user-images.githubusercontent.com/37420160/101077430-d28e0a00-3572-11eb-8cb1-536b173b0b83.png" alt="Screenshot">
 </picture>
 </p>
