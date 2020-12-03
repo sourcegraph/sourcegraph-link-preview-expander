@@ -60,7 +60,7 @@
   ],
   "devDependencies": {
     "@sourcegraph/eslint-config": "^0.20.11",
-    "@sourcegraph/extension-api-stubs": "^1.2.2",
+    "@sourcegraph/extension-api-stubs": "^1.3.0",
     "@sourcegraph/tsconfig": "^4.0.1",
     "@types/mocha": "^8.0.3",
     "@types/mock-require": "^2.0.0",
@@ -72,11 +72,12 @@
     "parcel-bundler": "^1.12.4",
     "sinon": "^9.2.0",
     "source-map-support": "^0.5.19",
-    "sourcegraph": "^24.7.0",
+    "sourcegraph": "^24.8.0",
     "ts-node": "^9.0.0",
     "typescript": "^4.0.3"
   },
   "dependencies": {
     "node-html-parser": "^1.3.1"
-  }
+  },
+  "icon": "data:image/svg+xml,%3Csvg viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs/%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M21.28 31.47a3.36 3.36 0 01-4.72-.01 12.9 12.9 0 01.01-18.25L22.77 7C12.68 7.57 3.74 15.18 0 24.65a25.8 25.8 0 002.1 4.2 13 13 0 012.62-3.82l5.2-5.2-.02 2.32c-.02 1.86.27 3.7.9 5.48l.2.57-1.55 1.55a6.2 6.2 0 00-1.75 5.5 25.77 25.77 0 008.62 4.64 6.37 6.37 0 001.93-1.33l8.45-8.45.24-.24A6.43 6.43 0 0025.9 17.8c.01-.06.04-.1.06-.16.17-.4.44-.77.76-1.07a3.36 3.36 0 014.72 0 12.85 12.85 0 01-.01 18.24l-6.24 6.23A25.78 25.78 0 0048 24.64a28.99 28.99 0 00-2.43-4.78 13.02 13.02 0 01-2.3 3.15l-5.21 5.2.02-2.32c.03-1.86-.26-3.7-.9-5.46l-.2-.56 1.56-1.57a6.2 6.2 0 001.84-4.64 26.52 26.52 0 00-8.93-5.4c-.63.31-1.21.73-1.72 1.23l-8.43 8.44c-.26.25-.5.52-.7.8a6.42 6.42 0 001.55 11.36c-.16.5-.45.98-.87 1.38zm-1.55-7.45a4.53 4.53 0 119.07 0 4.53 4.53 0 01-9.07 0z' fill='url(%23paint0_linear)'/%3E%3Cdefs%3E%3ClinearGradient id='paint0_linear' x1='-.41' y1='24.97' x2='48.1' y2='24.03' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%23F96216'/%3E%3Cstop offset='.46' stop-color='%23B200F8'/%3E%3Cstop offset='1' stop-color='%2300B4F2'/%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E"
 }
