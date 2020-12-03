@@ -1,15 +1,3 @@
-import * as sourcegraph from 'sourcegraph'
-
-// TODO replace with `textDocument.getText(range)` after 3.22 is relased
-export function getWord(document: sourcegraph.TextDocument, range: sourcegraph.Range): string {
-    const lines = document.text?.split('\n')
-    let word = ''
-    if (lines && range) {
-        word = lines[range.start.line].slice(range.start.character, range.end.character)
-    }
-    return word
-}
-
 export function checkIsURL(maybeURL: string): boolean {
     try {
         const url = new URL(maybeURL)

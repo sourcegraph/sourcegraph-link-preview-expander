@@ -60,7 +60,7 @@
   ],
   "devDependencies": {
     "@sourcegraph/eslint-config": "^0.20.11",
-    "@sourcegraph/extension-api-stubs": "^1.2.2",
+    "@sourcegraph/extension-api-stubs": "^1.3.0",
     "@sourcegraph/tsconfig": "^4.0.1",
     "@types/mocha": "^8.0.3",
     "@types/mock-require": "^2.0.0",
@@ -72,7 +72,7 @@
     "parcel-bundler": "^1.12.4",
     "sinon": "^9.2.0",
     "source-map-support": "^0.5.19",
-    "sourcegraph": "^24.7.0",
+    "sourcegraph": "^24.8.0",
     "ts-node": "^9.0.0",
     "typescript": "^4.0.3"
   },

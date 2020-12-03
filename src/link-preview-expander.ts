@@ -1,5 +1,5 @@
 import * as sourcegraph from 'sourcegraph'
-import { checkIsURL, cleanURL, getWord } from './util'
+import { checkIsURL, cleanURL } from './util'
 import parse from 'node-html-parser'
 
 interface Settings {
@@ -9,16 +9,17 @@ interface Settings {
 export function activate(context: sourcegraph.ExtensionContext): void {
     context.subscriptions.add(
         sourcegraph.languages.registerHoverProvider(['*'], {
-            provideHover: (document, position) => {
+            async *provideHover(document, position) {
                 const range = document.getWordRangeAtPosition(position)
-                if (!range) {
-                    return null
+                const word = document.getText(range)
+                if (!word) {
+                    return
                 }
-                const maybeURL = cleanURL(getWord(document, range))
-                const isURL = checkIsURL(maybeURL)
 
-                if (!isURL) {
-                    return null
+                const maybeURL = cleanURL(word)
+
+                if (!checkIsURL(maybeURL)) {
+                    return
                 }
 
                 /**
@@ -42,25 +43,33 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                     }
 
                     return {
+                        range,
                         contents: {
                             value: markdownContent,
                             kind: sourcegraph.MarkupKind.Markdown,
                         },
                     }
                 }
-                const settings = sourcegraph.configuration.get<Settings>().value
 
-                // TODO(tj): Return async iterable (once allowed) instead of promise so that we can show link before metadata loads
-                return fetch(
-                    (settings['linkPreviewExpander.corsAnywhereUrl']?.replace(/\/$/, '') ??
-                        'https://cors-anywhere.herokuapp.com') +
-                        '/' +
-                        maybeURL,
-                    { cache: 'force-cache' }
-                )
-                    .then(response => response.text())
-                    .then(text => createResult(getMetadataFromHTMLString(text)))
-                    .catch(() => createResult())
+                // yield link-only preview before trying to get metadata
+                yield createResult()
+
+                try {
+                    const settings = sourcegraph.configuration.get<Settings>().value
+
+                    const response = await fetch(
+                        `${
+                            settings['linkPreviewExpander.corsAnywhereUrl']?.replace(/\/$/, '') ??
+                            'https://cors-anywhere.herokuapp.com'
+                        }/${maybeURL}`,
+                        { cache: 'force-cache' }
+                    )
+                    const htmlString = await response.text()
+
+                    yield createResult(getMetadataFromHTMLString(htmlString))
+                } catch {
+                    // noop. already yielded link w/out metadata
+                }
             },
         })
     )
