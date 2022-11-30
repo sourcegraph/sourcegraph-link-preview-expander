@@ -16,10 +16,13 @@
       "commandPalette": []
     },
     "configuration": {
-      "linkPreviewExpander.corsAnywhereUrl": {
-        "description": "The URL to a CORS proxy.",
-        "type": "string",
-        "default": "https://cors-anywhere.herokuapp.com"
+      "title": "link-preview-expander settings",
+      "properties": {
+        "linkPreviewExpander.corsAnywhereUrl": {
+          "description": "The URL to a CORS proxy.",
+          "type": "string",
+          "default": "https://cors-anywhere.herokuapp.com"
+        }
       }
     }
   },
